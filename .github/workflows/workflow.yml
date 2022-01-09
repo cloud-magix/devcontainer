@@ -19,18 +19,18 @@ jobs:
         id: meta
         uses: docker/metadata-action@v3
         with:
-          images: brutalsimplicity/cicd-tools
+          images: brutalsimplicity/devcontainer
 
-      # - name: Login to DockerHub
-      #   uses: docker/login-action@v1
-      #   with:
-      #     username: ${{ secrets.DOCKERHUB_USERNAME }}
-      #     password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Login to DockerHub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build and Push Image
         uses: docker/build-push-action@v2
         with:
           context: .
-          # push: true
+          push: true
           tags: ${{ steps.meta.outputs.tags }}
           platforms: linux/amd64, linux/arm64
