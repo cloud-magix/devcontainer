@@ -1,0 +1,11 @@
+{
+    "name": "Test Project",
+    "dockerComposeFile": [
+        "docker-compose.yml"
+    ],
+    "service": "devcontainer",
+    "workspaceFolder": "/root/workspace",
+    "overrideCommand": true,
+    "settings": {},
+    "extensions": []
+}

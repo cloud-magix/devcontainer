@@ -1,0 +1,42 @@
+version: '3.9'
+
+services:
+  devcontainer:
+    image: test:latest
+    volumes:
+
+      # The project will be hosted here
+      - workspace:/root/workspace
+
+      # Add your AWS config for access within the dev container
+      - ${HOME}/.aws:/root/.aws
+
+      # Installed extensions can be saved here to avoid repetitive installs
+      # NOTE: ~ expansion may not work with docker compose
+      # - ${HOME}/.devcontainer/extensions:/root/.vscode-server/extensions
+
+      # Installed language environments can be saved to host to save additional environments created
+      # beyond those supplied by the docker image. These are managed through asdf, so you only
+      # need to save the subdirectory managed under the home folder (/root in this case)
+      # NOTE: ~ expansion may not work with docker compose
+      # - ${HOME}/.devcontainer/.asdf:/root/.asdf
+
+volumes:
+  workspace:
+  features:
+  extensions:
+
+# Those data volumes will allow your changes to persist to the docker volume only!
+# This mutagen config allows it to be synced with your host file system
+x-mutagen:
+  sync:
+    defaults:
+      mode: two-way-safe
+      ignore:
+        vcs: true
+    code:
+      alpha: "volume://workspace"
+
+      # update to where you want to save this on your host system
+      # uses same project directory by default
+      beta: "../"

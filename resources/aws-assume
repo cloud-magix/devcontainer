@@ -1,0 +1,115 @@
+#! /usr/bin/env python3
+import os
+import argparse
+import subprocess
+from datetime import datetime
+import boto3
+import boto3.session
+
+def list_available_profiles():
+    print('PROFILES')
+    print('--------')
+    profiles = boto3.session.Session().available_profiles or []
+    print(str.join(os.linesep, profiles))
+
+def get_identity(session: boto3.Session):
+    sts = session.client('sts')
+    try:
+        return sts.get_caller_identity()
+    except:
+        return None
+
+def get_profile_session(profile):
+    session = boto3.session.Session(profile_name=profile)
+    if not get_identity(session):
+        raise Exception(f'Error assuming profile [{profile}]')
+    return session
+
+def get_role_arn(role: str):
+    if role.startswith('arn'):
+        return role
+    identity = get_identity(session)
+    if not identity:
+        raise Exception(f'Error assuming role. Default credentials are invalid. Perhaps use a profile and use the --chain option to assume this role using its credentials.')
+    account = identity['Account']
+    return f'arn:aws:iam::{account}:role/{role}'
+
+def get_role_session(role: str, duration=None, external_id=None, source_identity=None, session=None):
+    session = session or boto3.session.Session()
+    sts = session.client('sts')
+    role_arn = get_role_arn(role)
+    session_name = f'session-{int(datetime.utcnow().timestamp())}'
+    session_name = f'{source_identity}@{session_name}' if source_identity else session_name
+    params = { key: value for key, value in 
+    {
+        'RoleArn': role_arn,
+        'ExternalId': external_id,
+        'RoleSessionName': session_name,
+        'DurationSeconds': duration,
+        'SourceIdentity': source_identity
+    }.items() if value }
+    creds = sts.assume_role(**params)['Credentials']
+    return boto3.session.Session(
+        aws_access_key_id=creds['AccessKeyId'],
+        aws_secret_access_key=creds['SecretAccessKey'],
+        aws_session_token=creds.get('SessionToken')
+    )
+    
+def get_chain_role_session(session: boto3.Session, roles: list[str], duration=None, external_id=None, source_identity=None):
+    for role in roles:
+        session = get_role_session(role, duration, external_id, source_identity, session)
+        external_id = None
+    return session
+
+def delete_environ(var: str):
+    if var in os.environ:
+        del os.environ[var]
+
+def launch_terminal_session(session: boto3.Session, shell):
+    delete_environ('AWS_SESSION_TOKEN')
+    delete_environ('AWS_DEFAULT_PROFILE')
+    delete_environ('AWS_PROFILE')
+    creds = session.get_credentials()
+    os.environ['AWS_ACCESS_KEY_ID'] = creds.access_key
+    os.environ['AWS_SECRET_ACCESS_KEY'] = creds.secret_key
+    if creds.token:
+        os.environ['AWS_SESSION_TOKEN'] = creds.token
+    subprocess.call(shell)
+    
+def export_session(session: boto3.Session):
+   creds = session .get_credentials()
+   print(f'export AWS_ACCESS_KEY_ID={creds.access_key}')
+   print(f'export AWS_SECRET_ACCESS_KEY={creds.secret_key}')
+   if creds.token:
+       print(f'export AWS_SESSION_TOKEN={creds.token}')
+
+parser = argparse.ArgumentParser(description='Assume AWS profiles and/or roles, including role-chaining')
+parser.add_argument('-s', '--shell', help='Command to launch shell with AWS credentials', dest='shell', default='sh')
+parser.add_argument('-e', '--export', help='Rather than launch shell, this will dump the credentials as export commands', action='store_true', dest='export')
+parser.add_argument('-c', '--chain', help='List of roles to assume after assuming the initial role or profile', dest='chain', nargs='+')
+parser.add_argument('-d', '--duration', help='Duration (minutes) for an assumed role', dest='duration', default=60, type=int)
+parser.add_argument('--external_id', help='External ID to use for the assumed role. Environment variable AWS_EXTERNAL_ID can also be used.\nNOTE: external_id is only used for the first assumed role')
+parser.add_argument('--source_identity', help='Source identity to use for the assumed role. Environment variable AWS_SOURCE_IDENTITY can also be used.\nNOTE: source_identity is passed along to each assumed role')
+group = parser.add_mutually_exclusive_group(required=True)
+group.add_argument('-l', '--list', help='List available profiles', action='store_true', dest='list')
+group.add_argument('-r', '--role', help='Role name or arn', dest='role')
+group.add_argument('-p', '--profile', help='Profile to assume', dest='profile')
+
+if __name__ == '__main__':
+    args = parser.parse_args()
+    if args.list:
+        list_available_profiles()
+    
+    external_id = args.external_id or os.environ.get('AWS_EXTERNAL_ID')
+    source_identity = args.source_identity or os.environ.get('AWS_SOURCE_IDENTITY')
+    duration = args.duration * 60 if args.duration else None
+    session = get_profile_session(args.profile) if args.profile else get_role_session(args.role, duration, external_id, source_identity)
+    
+    if args.chain:
+        session = get_chain_role_session(session, args.chain, duration, external_id, source_identity)
+    
+    if args.export:
+        export_session(session)
+        exit(0)
+        
+    launch_terminal_session(session, args.shell)
