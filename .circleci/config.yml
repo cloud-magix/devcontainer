@@ -1,0 +1,20 @@
+version: 2.1
+
+# Define a job to be invoked later in a workflow.
+# See: https://circleci.com/docs/2.0/configuration-reference/#jobs
+jobs:
+  build:
+    docker:
+      - image: docker:stable
+    steps:
+      - checkout
+      - setup_remote_docker:
+          version: 20.10.11
+      - run: |
+          docker version
+          docker buildx version
+
+workflows:
+  build:
+    jobs:
+      - build
