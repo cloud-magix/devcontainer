@@ -2,18 +2,34 @@
 version: 2.1
 
 jobs:
-  build:
+  build_and_publish:
     docker:
       - image: brutalsimplicity/docker-with-buildx:latest
     steps:
       - checkout
       - setup_remote_docker:
           version: 20.10.11
-      - run: |
-          docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_TOKEN
+      - run: 
+          name: Docker Login
+          command: |
+            docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_TOKEN
+      - run:
+          name: Setup Multi-Arch Support
+          command: |
+            docker run --privileged --rm tonistiigi/binfmt --install all
+            docker buildx ls
+            docker context create buildx_context
+            docker buildx create buildx_context --use
+            docker buildx inspect --bootstrap
+      - run:
+          name: Docker Build and Publish with BuildX
+          command: |
+            docker buildx build --push \
+              --platform linux/amd64,linux/arm64 \
+              --tag brutalsimplicity/devcontainer:latest .
 
 workflows:
-  build:
+  build_and_publish:
     jobs:
-      - build:
+      - build_and_publish:
           context: cloud-magix
