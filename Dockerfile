@@ -116,6 +116,9 @@ RUN curl https://awscli.amazonaws.com/awscli-exe-linux-aarch64.zip -o /tmp/awscl
     cd /tmp && unzip awscliv2.zip && aws/install && \
     rm -rf /tmp/**
 
+# install boto3
+RUN pip install boto3
+
 # some aws goodness utils
 # install golang
 RUN asdf install golang 1.17.5 && \
