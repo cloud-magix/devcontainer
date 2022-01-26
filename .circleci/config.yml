@@ -62,8 +62,46 @@ jobs:
             - run:
                 name: Docker Publish
                 command: |
-                  docker tag brutalsimplicity/devcontainer:latest brutalsimplicity/devcontainer:<<parameters.platform>>-<< pipeline.git.tag >>
-                  docker push brutalsimplicity/devcontainer:<<parameters.platform>>-<< pipeline.git.tag >>
+                  platform="<< parameters.platform >>"
+                  validPlatform=${platform/linux\//}
+                  docker tag brutalsimplicity/devcontainer:latest brutalsimplicity/devcontainer:${validPlatform}-<< pipeline.git.tag >>
+                  docker push brutalsimplicity/devcontainer:${validPlatform}-<< pipeline.git.tag >>
+  # create_manifest:
+  #   machine:
+  #     image: ubuntu-2004:202101-01
+  #   resource_class: << parameters.resource_class >>
+  #   steps:
+  #     - checkout
+  #     - run:
+  #         name: Docker Install Test
+  #         command: |
+  #           docker --help || true
+  #     - run:
+  #         name: Install Docker
+  #         command: |
+  #           sudo apt-get update
+  #           sudo apt-get -yf install \
+  #               ca-certificates \
+  #               curl \
+  #               gnupg \
+  #               lsb-release
+            
+  #           curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+            
+  #           echo \
+  #           "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu \
+  #           $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+  #           sudo apt-get update
+  #           sudo apt-get install docker-ce docker-ce-cli containerd.io
+  #     - run: 
+  #         name: Docker Login
+  #         command: |
+  #           docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_TOKEN
+  #     - run:
+  #         name: Docker Create Manifest
+  #         command: |
+  #           docker
 
 workflows:
   build_and_publish_arm64:
