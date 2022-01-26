@@ -16,6 +16,11 @@ jobs:
     machine:
       image: << parameters.image >>
     resource_class: << parameters.resource_class >>
+    filters:
+      branches:
+        only: main
+      tags:
+        only: /v.*/
     steps:
       - checkout
       - run:
@@ -68,6 +73,7 @@ jobs:
 
 workflows:
   build_and_publish_arm64:
+    
     jobs:
       - build_and_publish:
           image: ubuntu-2004:202101-01
