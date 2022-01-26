@@ -16,11 +16,6 @@ jobs:
     machine:
       image: << parameters.image >>
     resource_class: << parameters.resource_class >>
-    filters:
-      branches:
-        only: main
-      tags:
-        only: /v.*/
     steps:
       - checkout
       - run:
@@ -72,19 +67,29 @@ jobs:
                   docker push brutalsimplicity/devcontainer:latest
 
 workflows:
-  build_and_publish_arm64:
-    
+  build_and_publish:
     jobs:
       - build_and_publish:
+          name: Build and Publish ARM64
           image: ubuntu-2004:202101-01
           resource_class: arm.medium
           platform: linux/arm64
           context: cloud-magix
+          filters:
+            branches:
+              only: main
+            tags:
+              only: /v.*/
 
-  build_and_publish_amd64:
-    jobs:
       - build_and_publish:
+          name: Build and Publish AMD64
           image: ubuntu-2004:202101-01
           resource_class: medium
           platform: linux/amd64
           context: cloud-magix
+          filters:
+            branches:
+              only: main
+            tags:
+              only: /v.*/
+        
