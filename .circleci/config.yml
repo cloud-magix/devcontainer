@@ -47,8 +47,9 @@ jobs:
                   platform="<< parameters.platform >>"
                   validPlatform=${platform/linux\//}
                   docker tag brutalsimplicity/devcontainer:latest brutalsimplicity/devcontainer:<< pipeline.git.tag >>-${validPlatform}
+                  docker tag brutalsimplicity/devcontainer:latest brutalsimplicity/devcontainer:latest-${validPlatform}
                   docker push brutalsimplicity/devcontainer:<< pipeline.git.tag >>-${validPlatform}
-                  docker push brutalsimplicity/devcontainer:<< pipeline.git.tag >>-latest
+                  docker push brutalsimplicity/devcontainer:latest-${validPlatform}
   # create_manifest:
   #   machine:
   #     image: ubuntu-2004:202101-01
