@@ -62,7 +62,7 @@ jobs:
             - run:
                 name: Docker Publish
                 command: |
-                  docker tag brutalsimplicity/devcontainer:<< pipeline.git.tag >>
+                  docker tag brutalsimplicity/devcontainer:latest brutalsimplicity/devcontainer:<< pipeline.git.tag >>
                   docker push brutalsimplicity/devcontainer:<< pipeline.git.tag >>
                   docker push brutalsimplicity/devcontainer:latest
 
