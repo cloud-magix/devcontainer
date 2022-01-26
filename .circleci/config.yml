@@ -18,56 +18,46 @@ jobs:
     resource_class: << parameters.resource_class >>
     steps:
       - checkout
-      # - run:
-      #     name: Install Docker
-      #     command: |
-      #       sudo apt-get update
-      #       sudo apt-get -yf install \
-      #           ca-certificates \
-      #           curl \
-      #           gnupg \
-      #           lsb-release
+      - run:
+          name: Install Docker
+          command: |
+            sudo apt-get update
+            sudo apt-get -yf install \
+                ca-certificates \
+                curl \
+                gnupg \
+                lsb-release
             
-      #       curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+            curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
             
-      #       echo \
-      #       "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu \
-      #       $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+            echo \
+            "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu \
+            $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 
-      #       sudo apt-get update
-      #       sudo apt-get install docker-ce docker-ce-cli containerd.io
-      # - run: 
-      #     name: Docker Login
-      #     command: |
-      #       docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_TOKEN
-      # - run:
-      #     name: Setup Multi-Arch Support
-      #     command: |
-      #       docker buildx ls
-      #       docker context create buildx_context
-      #       docker buildx create buildx_context --use
-      #       docker buildx inspect --bootstrap
-      # - run:
-      #     name: Docker Build
-      #     command: |
-      #       docker build \
-      #         --platform << parameters.platform >> \
-      #         --tag brutalsimplicity/devcontainer:latest .
+            sudo apt-get update
+            sudo apt-get install docker-ce docker-ce-cli containerd.io
+      - run: 
+          name: Docker Login
+          command: |
+            docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_TOKEN
+      - run:
+          name: Setup Multi-Arch Support
+          command: |
+            docker buildx ls
+            docker context create buildx_context
+            docker buildx create buildx_context --use
+            docker buildx inspect --bootstrap
+      - run:
+          name: Docker Build
+          command: |
+            docker build \
+              --platform << parameters.platform >> \
+              --tag brutalsimplicity/devcontainer:latest .
       - when:
           condition:
             matches:
               pattern: "^v.+$"
               value: << pipeline.git.tag >>
-          steps:
-            - run:
-                name: When Trigger Test
-                command: |
-                  echo "Triggered << pipeline.git.tag >>"
-      - when:
-          condition:
-            matches:
-              pattern: "^v.+$"
-              value: $CIRCLE_TAG
           steps:
             - run:
                 name: Docker Publish
