@@ -50,24 +50,38 @@ jobs:
                   docker tag brutalsimplicity/devcontainer:latest brutalsimplicity/devcontainer:latest-${validPlatform}
                   docker push brutalsimplicity/devcontainer:<< pipeline.git.tag >>-${validPlatform}
                   docker push brutalsimplicity/devcontainer:latest-${validPlatform}
-  # create_manifest:
-  #   machine:
-  #     image: ubuntu-2004:202101-01
-  #   resource_class: << parameters.resource_class >>
-  #   steps:
-  #     - checkout
-  #     - run:
-  #         name: Docker Install Test
-  #         command: |
-  #           docker --help || true
-  #     - run: 
-  #         name: Docker Login
-  #         command: |
-  #           docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_TOKEN
-  #     - run:
-  #         name: Docker Create Manifest
-  #         command: |
-  #           docker manifest create
+
+  create_and_publish_manifest:
+    parameters:
+      platforms:
+        description: Space-Delimitted Platforms for image (i.e. "linux/amd64 linux/arm64")
+        type: string
+    machine:
+      image: ubuntu-2004:202101-01
+    resource_class: medium
+    steps:
+      - checkout
+      - run:
+          name: Docker Install Test
+          command: |
+            docker --help || true
+      - run: 
+          name: Docker Login
+          command: |
+            docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_TOKEN
+      - run:
+          name: Docker Create and Publish Manifest
+          command: |
+            for platform in << parameters.platforms >>; do
+              validPlatform=${platform/linux\//}
+              docker manifest create brutalsimplicity/devcontainer:<< pipeline.git.tag >> \
+                --amend brutalsimplicity/devcontainer:<< pipeline.git.tag >>-${validPlatform}
+              docker manifest create brutalsimplicity/devcontainer:latest \
+                --amend brutalsimplicity/devcontainer:latest-${validPlatform}
+            done
+            docker manifest push brutalsimplicity/devcontainer:<< pipeline.git.tag >>
+            docker manifest push brutalsimplicity/devcontainer:latest
+
 
 workflows:
   build_and_publish_arm64:
@@ -95,5 +109,15 @@ workflows:
               only: main
             tags:
               only: /v.*/
-            
-        
+
+      - create_and_publish_manifest: 
+          requires:
+            - Build and Publish ARM64
+            - Build and Publish AMD64
+          name: Create and Publish Manifest
+          context: cloud-magix
+          platforms: linux/arm64 linux/amd64
+          filters:
+            tags:
+              only: /v.*/
+          
