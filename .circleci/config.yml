@@ -67,7 +67,7 @@ jobs:
                   docker push brutalsimplicity/devcontainer:latest
 
 workflows:
-  build_and_publish:
+  build_and_publish_arm64:
     jobs:
       - build_and_publish:
           name: Build and Publish ARM64
@@ -81,6 +81,8 @@ workflows:
             tags:
               only: /v.*/
 
+  build_and_publish_amd64:
+    jobs:
       - build_and_publish:
           name: Build and Publish AMD64
           image: ubuntu-2004:202101-01
