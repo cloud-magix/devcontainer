@@ -3,12 +3,39 @@ version: 2.1
 
 jobs:
   build_and_publish:
-    docker:
-      - image: brutalsimplicity/docker-with-buildx:latest
+    parameters:
+      image:
+        description: Machine image name
+        type: string
+      resource_class:
+        description: Resource class of machine
+        type: string
+      platform:
+        description: Platform for image
+        type: string
+    machine:
+      image: << parameters.image >>
+    resource_class: << parameters.resource_class >>
     steps:
       - checkout
-      - setup_remote_docker:
-          version: 20.10.11
+      - run:
+          name: Install Docker
+          command: |
+            sudo apt-get update
+            sudo apt-get install \
+                ca-certificates \
+                curl \
+                gnupg \
+                lsb-release
+            
+            curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+            
+            echo \
+            "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu \
+            $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+            sudo apt-get update
+            sudo apt-get install docker-ce docker-ce-cli containerd.io
       - run: 
           name: Docker Login
           command: |
@@ -16,20 +43,34 @@ jobs:
       - run:
           name: Setup Multi-Arch Support
           command: |
-            docker run --privileged --rm tonistiigi/binfmt --install all
             docker buildx ls
             docker context create buildx_context
             docker buildx create buildx_context --use
             docker buildx inspect --bootstrap
       - run:
-          name: Docker Build and Publish with BuildX
+          name: Docker Build
           command: |
-            docker buildx build --push \
-              --platform linux/amd64,linux/arm64 \
+            docker build \
+              --platform << parameters.platform >> \
               --tag brutalsimplicity/devcontainer:latest .
+      - when:
+          condition:
+            matches:
+              pattern: "v.+$"
+              value: $CIRCLE_TAG
+          steps:
+            - run:
+                name: Docker Publish
+                command: |
+                  docker tag brutalsimplicity/devcontainer:$CIRCLE_TAG
+                  docker push brutalsimplicity/devcontainer:$CIRCLE_TAG
+                  docker push brutalsimplicity/devcontainer:latest
 
 workflows:
-  build_and_publish:
+  build_and_publish_arm:
     jobs:
       - build_and_publish:
+          image: ubuntu-2004:202101-01
+          resource_class: arm.medium
+          platform: linux/arm64
           context: cloud-magix
