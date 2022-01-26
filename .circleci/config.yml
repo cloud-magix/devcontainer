@@ -22,7 +22,7 @@ jobs:
           name: Install Docker
           command: |
             sudo apt-get update
-            sudo apt-get install \
+            sudo apt-get -yf install \
                 ca-certificates \
                 curl \
                 gnupg \
@@ -67,10 +67,18 @@ jobs:
                   docker push brutalsimplicity/devcontainer:latest
 
 workflows:
-  build_and_publish_arm:
+  build_and_publish_arm64:
     jobs:
       - build_and_publish:
           image: ubuntu-2004:202101-01
           resource_class: arm.medium
           platform: linux/arm64
+          context: cloud-magix
+
+  build_and_publish_amd64:
+    jobs:
+      - build_and_publish:
+          image: ubuntu-2004:202101-01
+          resource_class: medium
+          platform: linux/amd64
           context: cloud-magix
