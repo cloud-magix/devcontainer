@@ -62,9 +62,8 @@ jobs:
             - run:
                 name: Docker Publish
                 command: |
-                  docker tag brutalsimplicity/devcontainer:latest brutalsimplicity/devcontainer:<< pipeline.git.tag >>
-                  docker push brutalsimplicity/devcontainer:<< pipeline.git.tag >>
-                  docker push brutalsimplicity/devcontainer:latest
+                  docker tag brutalsimplicity/devcontainer:latest brutalsimplicity/devcontainer:<<parameters.platform>>-<< pipeline.git.tag >>
+                  docker push brutalsimplicity/devcontainer:<<parameters.platform>>-<< pipeline.git.tag >>
 
 workflows:
   build_and_publish_arm64:
@@ -81,8 +80,6 @@ workflows:
             tags:
               only: /v.*/
 
-  build_and_publish_amd64:
-    jobs:
       - build_and_publish:
           name: Build and Publish AMD64
           image: ubuntu-2004:202101-01
@@ -94,4 +91,5 @@ workflows:
               only: main
             tags:
               only: /v.*/
+            
         
