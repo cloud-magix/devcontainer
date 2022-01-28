@@ -18,7 +18,7 @@ jobs:
     resource_class: << parameters.resource_class >>
     steps:
       - checkout
-      - run: 
+      - run:
           name: Docker Login
           command: |
             docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_TOKEN
@@ -65,7 +65,7 @@ jobs:
           name: Docker Install Test
           command: |
             docker --help || true
-      - run: 
+      - run:
           name: Docker Login
           command: |
             docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_TOKEN
@@ -82,7 +82,6 @@ jobs:
             docker manifest push brutalsimplicity/devcontainer:<< pipeline.git.tag >>
             docker manifest push brutalsimplicity/devcontainer:latest
 
-
 workflows:
   build:
     jobs:
@@ -91,7 +90,7 @@ workflows:
           image: ubuntu-2004:202101-01
           resource_class: arm.medium
           platform: linux/arm64
-          context: cloud-magix
+          context: cloudmagick
           filters:
             branches:
               only: main
@@ -101,7 +100,7 @@ workflows:
           image: ubuntu-2004:202101-01
           resource_class: medium
           platform: linux/amd64
-          context: cloud-magix
+          context: cloudmagick
           filters:
             branches:
               only: main
@@ -113,7 +112,7 @@ workflows:
           image: ubuntu-2004:202101-01
           resource_class: arm.medium
           platform: linux/arm64
-          context: cloud-magix
+          context: cloudmagick
           filters:
             tags:
               only: /v.*/
@@ -123,19 +122,18 @@ workflows:
           image: ubuntu-2004:202101-01
           resource_class: medium
           platform: linux/amd64
-          context: cloud-magix
+          context: cloudmagick
           filters:
             tags:
               only: /v.*/
 
-      - create_and_publish_manifest: 
+      - create_and_publish_manifest:
           requires:
             - Build and Publish ARM64
             - Build and Publish AMD64
           name: Create and Publish Manifest
-          context: cloud-magix
+          context: cloudmagick
           platforms: linux/arm64 linux/amd64
           filters:
             tags:
               only: /v.*/
-          

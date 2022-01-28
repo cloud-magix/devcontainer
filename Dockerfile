@@ -1,7 +1,9 @@
 FROM debian:bullseye-20211220
 
 # Install basic dev packages
-RUN apt-get clean && apt-get update && apt-get -y install --no-install-recommends apt-utils \
+RUN apt-get clean && apt-get update && apt-get -y install --no-install-recommends \
+    build-essential \
+    apt-utils \
     openssh-client \
     git \
     gnupg2 \
@@ -60,8 +62,7 @@ RUN apt-get clean && apt-get update && apt-get -y install --no-install-recommend
     tree \
     zsh && \
     ln -s $(which fdfind) /usr/local/bin/fd && \
-    ln -s $(which batcat) /usr/local/bin/bat && \
-    rm -rf /var/lib/apt/lists/*
+    ln -s $(which batcat) /usr/local/bin/bat
 
 # ensure we use bash for all RUN commands
 SHELL ["/bin/bash", "-lc"]
@@ -97,9 +98,10 @@ RUN python_install_build_deps && \
     apt-get -y autoremove && \
     rm -rf /var/lib/apt/lists/*
 
-# upgrade python and node package managers
+# upgrade python and node package managers and install nx workspace manager
 RUN pip install --upgrade pip && npm i -g npm@latest && \
     pip install pipenv==v2021.11.23 && npm i -g yarn@1.22 && \
+    npm i -g nx && \
     rm -rf /root/.cache
 
 # install docker
