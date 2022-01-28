@@ -2,7 +2,6 @@ FROM debian:bullseye-20211220
 
 # Install basic dev packages
 RUN apt-get clean && apt-get update && apt-get -y install --no-install-recommends \
-    build-essential \
     apt-utils \
     openssh-client \
     git \
@@ -62,7 +61,8 @@ RUN apt-get clean && apt-get update && apt-get -y install --no-install-recommend
     tree \
     zsh && \
     ln -s $(which fdfind) /usr/local/bin/fd && \
-    ln -s $(which batcat) /usr/local/bin/bat
+    ln -s $(which batcat) /usr/local/bin/bat && \
+    rm -rf /var/lib/apt/lists/*
 
 # ensure we use bash for all RUN commands
 SHELL ["/bin/bash", "-lc"]
@@ -133,6 +133,9 @@ RUN asdf install golang 1.17.5 && \
     asdf current && \
     rm -rf /tmp/** && \
     rm -rf /root/.cache
+
+RUN apt-get update && apt-get install -y build-essential && \
+    rm -rf /var/lib/apt/lists/*
     
 COPY resources/aws-assume /usr/local/bin/aws-assume
 
