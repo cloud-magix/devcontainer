@@ -1,8 +1,12 @@
 #! /usr/bin/env python3
+from importlib.resources import path
 import os
 import argparse
+import configparser
+import pathlib
 import subprocess
 from datetime import datetime
+import sys
 import boto3
 import boto3.session
 
@@ -77,39 +81,97 @@ def launch_terminal_session(session: boto3.Session, shell):
     subprocess.call(shell)
     
 def export_session(session: boto3.Session):
-   creds = session .get_credentials()
+   creds = session.get_credentials()
    print(f'export AWS_ACCESS_KEY_ID={creds.access_key}')
    print(f'export AWS_SECRET_ACCESS_KEY={creds.secret_key}')
    if creds.token:
        print(f'export AWS_SESSION_TOKEN={creds.token}')
 
+def configure_session(session: boto3.Session, profile = None):
+    profile = profile or 'default'
+    config = configparser.ConfigParser()
+    creds_config = configparser.ConfigParser()
+    config_path = pathlib.Path(pathlib.Path.home(), '.aws', 'config')
+    creds_path = pathlib.Path(pathlib.Path.home(), '.aws', 'credentials')
+    config.read(config_path)
+    creds_config.read(creds_path)
+    if not config.has_section(profile):
+        config.add_section(profile)
+    if not creds_config.has_section(profile):
+        creds_config.add_section(profile)
+
+
+    def configure(key: str, value: str):
+        print(f'configuring credentials for {key}')
+        config.set(profile, key, value)
+        creds_config.set(profile, key, value)
+
+    creds = session.get_credentials()
+    configure('aws_access_key_id', creds.access_key)
+    configure('aws_secret_access_key', creds.secret_key)
+    if creds.token:
+        configure('aws_session_token', creds.token)
+
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    with config_path.open('w') as fp:
+        config.write(fp)
+    with creds_path.open('w') as fp:
+        config.write(fp)
+
+def get_ssm_parameter_value(path: str, decryption: bool = True):
+    session = boto3.session.Session()
+    ssm = session.client('ssm')
+    params = {
+        'Name': path,
+        'WithDecryption': decryption
+    }
+    response = ssm.get_parameter(**params)
+    return response['Parameter']['Value']
+
 parser = argparse.ArgumentParser(description='Assume AWS profiles and/or roles, including role-chaining')
 parser.add_argument('-s', '--shell', help='Command to launch shell with AWS credentials', dest='shell', default='sh')
+parser.add_argument('--no-shell', help='Command to launch shell with AWS credentials', dest='no_shell', action='store_true', default=False)
 parser.add_argument('-e', '--export', help='Rather than launch shell, this will dump the credentials as export commands', action='store_true', dest='export')
 parser.add_argument('-c', '--chain', help='List of roles to assume after assuming the initial role or profile', dest='chain', nargs='+')
 parser.add_argument('-d', '--duration', help='Duration (minutes) for an assumed role', dest='duration', default=60, type=int)
 parser.add_argument('--external_id', help='External ID to use for the assumed role. Environment variable AWS_EXTERNAL_ID can also be used.\nNOTE: external_id is only used for the first assumed role')
 parser.add_argument('--source_identity', help='Source identity to use for the assumed role. Environment variable AWS_SOURCE_IDENTITY can also be used.\nNOTE: source_identity is passed along to each assumed role')
+parser.add_argument('--region', help='AWS Region', dest='region', default='us-east-1')
+parser.add_argument('--configure', help='This will use the `aws configure set` command to set credentials against the default profile (or profile if specified)', action='store_true', dest='configure')
+parser.add_argument('--configure_profile', help='The profile to configure, uses the default if not specified', dest='configure_profile')
 group = parser.add_mutually_exclusive_group(required=True)
 group.add_argument('-l', '--list', help='List available profiles', action='store_true', dest='list')
 group.add_argument('-r', '--role', help='Role name or arn', dest='role')
 group.add_argument('-p', '--profile', help='Profile to assume', dest='profile')
+group.add_argument('--ssm-role-path', help='SSM parameter containing the role to assume', dest='ssm_role_key')
+parser.add_argument('--ssm-externalid-path', help='SSM parameter containing the external id to assume', dest='ssm_external_id_key')
 
 if __name__ == '__main__':
     args = parser.parse_args()
     if args.list:
         list_available_profiles()
-    
-    external_id = args.external_id or os.environ.get('AWS_EXTERNAL_ID')
+        exit(0)
+
+    if args.region:
+        os.environ['AWS_DEFAULT_REGION'] = args.region
+
+    ssm_external_id = get_ssm_parameter_value(args.ssm_external_id_key) if args.ssm_external_id_key else None
+    ssm_role = get_ssm_parameter_value(args.ssm_role_key) if args.ssm_role_key else None
+
+    role = ssm_role or args.role
+    external_id = ssm_external_id or args.external_id or os.environ.get('AWS_EXTERNAL_ID')
     source_identity = args.source_identity or os.environ.get('AWS_SOURCE_IDENTITY')
     duration = args.duration * 60 if args.duration else None
-    session = get_profile_session(args.profile) if args.profile else get_role_session(args.role, duration, external_id, source_identity)
+    session = get_profile_session(args.profile) if args.profile else get_role_session(role, duration, external_id, source_identity)
     
     if args.chain:
         session = get_chain_role_session(session, args.chain, duration, external_id, source_identity)
+
+    if args.configure:
+        configure_session(session, args.configure_profile)
     
     if args.export:
         export_session(session)
-        exit(0)
-        
-    launch_terminal_session(session, args.shell)
+    
+    if not args.no_shell:
+        launch_terminal_session(session, args.shell)
