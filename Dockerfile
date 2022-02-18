@@ -136,6 +136,8 @@ RUN asdf install golang 1.17.5 && \
 
 RUN apt-get update && apt-get install -y build-essential && \
     rm -rf /var/lib/apt/lists/*
+
+RUN pip install aws-sam-cli
     
 COPY resources/aws-assume /usr/local/bin/aws-assume
 
