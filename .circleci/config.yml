@@ -10,6 +10,9 @@ jobs:
       resource_class:
         description: Resource class of machine
         type: string
+      image_name:
+        description: Named to be used for image in Docker Registry (don't include the tag)
+        type: string
       platform:
         description: Platform for image
         type: string
@@ -34,7 +37,7 @@ jobs:
           command: |
             docker build \
               --platform << parameters.platform >> \
-              --tag brutalsimplicity/devcontainer:latest .
+              --tag << parameters.image_name >>:latest .
       - when:
           condition:
             matches:
@@ -46,15 +49,18 @@ jobs:
                 command: |
                   platform="<< parameters.platform >>"
                   validPlatform=${platform/linux\//}
-                  docker tag brutalsimplicity/devcontainer:latest brutalsimplicity/devcontainer:<< pipeline.git.tag >>-${validPlatform}
-                  docker tag brutalsimplicity/devcontainer:latest brutalsimplicity/devcontainer:latest-${validPlatform}
-                  docker push brutalsimplicity/devcontainer:<< pipeline.git.tag >>-${validPlatform}
-                  docker push brutalsimplicity/devcontainer:latest-${validPlatform}
+                  docker tag << parameters.image_name >>:latest << parameters.image_name >>:<< pipeline.git.tag >>-${validPlatform}
+                  docker tag << parameters.image_name >>:latest << parameters.image_name >>:latest-${validPlatform}
+                  docker push << parameters.image_name >>:<< pipeline.git.tag >>-${validPlatform}
+                  docker push << parameters.image_name >>:latest-${validPlatform}
 
   create_and_publish_manifest:
     parameters:
       platforms:
         description: Space-Delimitted Platforms for image (i.e. "linux/amd64 linux/arm64")
+        type: string
+      image_name:
+        description: Named to be used for image in Docker Registry (don't include the tag)
         type: string
     machine:
       image: ubuntu-2004:202101-01
@@ -74,19 +80,20 @@ jobs:
           command: |
             for platform in << parameters.platforms >>; do
               validPlatform=${platform/linux\//}
-              docker manifest create brutalsimplicity/devcontainer:<< pipeline.git.tag >> \
-                --amend brutalsimplicity/devcontainer:<< pipeline.git.tag >>-${validPlatform}
-              docker manifest create brutalsimplicity/devcontainer:latest \
-                --amend brutalsimplicity/devcontainer:latest-${validPlatform}
+              docker manifest create << parameters.image_name >>:<< pipeline.git.tag >> \
+                --amend << parameters.image_name >>:<< pipeline.git.tag >>-${validPlatform}
+              docker manifest create << parameters.image_name >>:latest \
+                --amend << parameters.image_name >>:latest-${validPlatform}
             done
-            docker manifest push brutalsimplicity/devcontainer:<< pipeline.git.tag >>
-            docker manifest push brutalsimplicity/devcontainer:latest
+            docker manifest push << parameters.image_name >>:<< pipeline.git.tag >>
+            docker manifest push << parameters.image_name >>:latest
 
 workflows:
   build:
     jobs:
       - build_and_publish:
-          name: Build and Publish ARM64
+          name: Build and Publish linux/arm64
+          image_name: brutalsimplicity/devcontainer
           image: ubuntu-2004:202101-01
           resource_class: arm.medium
           platform: linux/arm64
@@ -94,9 +101,12 @@ workflows:
           filters:
             branches:
               only: main
+            tags:
+              only: /^v.*/
 
       - build_and_publish:
-          name: Build and Publish AMD64
+          name: Build and Publish linux/amd64
+          image_name: brutalsimplicity/devcontainer
           image: ubuntu-2004:202101-01
           resource_class: medium
           platform: linux/amd64
@@ -104,36 +114,19 @@ workflows:
           filters:
             branches:
               only: main
-
-  build_and_publish:
-    jobs:
-      - build_and_publish:
-          name: Build and Publish ARM64
-          image: ubuntu-2004:202101-01
-          resource_class: arm.medium
-          platform: linux/arm64
-          context: cloudmagick
-          filters:
             tags:
-              only: /v.*/
-
-      - build_and_publish:
-          name: Build and Publish AMD64
-          image: ubuntu-2004:202101-01
-          resource_class: medium
-          platform: linux/amd64
-          context: cloudmagick
-          filters:
-            tags:
-              only: /v.*/
+              only: /^v.*/
 
       - create_and_publish_manifest:
           requires:
-            - Build and Publish ARM64
-            - Build and Publish AMD64
+            - Build and Publish linux/arm64
+            - Build and Publish linux/amd64
+          platforms: linux/arm64 linux/amd64
+          image_name: brutalsimplicity/devcontainer
           name: Create and Publish Manifest
           context: cloudmagick
-          platforms: linux/arm64 linux/amd64
           filters:
+            branches:
+              ignore: /.*/
             tags:
-              only: /v.*/
+              only: /^v.*/
