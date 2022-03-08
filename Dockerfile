@@ -139,7 +139,7 @@ RUN apt-get update && apt-get install -y build-essential && \
 
 RUN pip install aws-sam-cli
 
-RUN git clone git@github.com:jscutlery/nx-completion.git ~/.oh-my-zsh/custom/plugins/nx-completion
+RUN git clone https://github.com/jscutlery/nx-completion.git ~/.oh-my-zsh/custom/plugins/nx-completion
     
 COPY resources/aws-assume /usr/local/bin/aws-assume
 
