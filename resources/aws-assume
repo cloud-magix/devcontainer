@@ -130,7 +130,7 @@ def get_ssm_parameter_value(path: str, decryption: bool = True):
 
 parser = argparse.ArgumentParser(description='Assume AWS profiles and/or roles, including role-chaining')
 parser.add_argument('-s', '--shell', help='Command to launch shell with AWS credentials', dest='shell', default='sh')
-parser.add_argument('--no-shell', help='Command to launch shell with AWS credentials', dest='no_shell', action='store_true', default=False)
+parser.add_argument('--no-shell', help='Prevent automatic launch of shell with AWS credentials', dest='no_shell', action='store_true', default=False)
 parser.add_argument('-e', '--export', help='Rather than launch shell, this will dump the credentials as export commands', action='store_true', dest='export')
 parser.add_argument('-c', '--chain', help='List of roles to assume after assuming the initial role or profile', dest='chain', nargs='+')
 parser.add_argument('-d', '--duration', help='Duration (minutes) for an assumed role', dest='duration', default=60, type=int)
@@ -172,6 +172,5 @@ if __name__ == '__main__':
     
     if args.export:
         export_session(session)
-    
-    if not args.no_shell:
+    elif not args.no_shell:
         launch_terminal_session(session, args.shell)
