@@ -88,7 +88,8 @@ RUN asdf plugin add nodejs && \
 # builds from the source
 RUN python_install_build_deps && \
     cd /root/.asdf && \
-    asdf install && \
+    asdf install python 3.9.6 && \
+    asdf install nodejs 14.18.2 && \
     asdf global python 3.9.6 && \
     asdf global nodejs 14.18.2 && \
 # remove build dependencies
@@ -147,14 +148,15 @@ RUN mkdir -p /usr/local/lib/docker/cli-plugins && \
 
 # use asdf to install additional utilities (awscli, aws-sam-cli)
 RUN asdf plugin add awscli && \
-    asdf install awscli latest:2 && \
-    asdf global awscli latest
+    asdf install awscli 2.4.25 && \
+    asdf global awscli 2.4.25
 
 RUN asdf plugin add aws-sam-cli && \
-    asdf install aws-sam-cli latest && \
-    asdf global aws-sam-cli latest
-    
+    asdf install aws-sam-cli 1.40.1 && \
+    asdf global aws-sam-cli 1.40.1
+
 COPY resources/aws-assume /usr/local/bin/aws-assume
+COPY resources/dockerd-entrypoint.sh /dockerd-entrypoint.sh
 
 RUN cd /bin && ln -sf zsh sh && chsh -s /bin/zsh
 ENV SHELL=zsh

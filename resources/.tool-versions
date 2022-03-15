@@ -1,2 +1,4 @@
 nodejs 14.18.2
 python 3.9.6
+awscli 2.4.25
+aws-sam-cli 1.40.1
