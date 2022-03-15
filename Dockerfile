@@ -137,16 +137,22 @@ RUN asdf install golang 1.17.5 && \
 RUN apt-get update && apt-get install -y build-essential && \
     rm -rf /var/lib/apt/lists/*
 
-RUN pip install aws-sam-cli
-
 RUN git clone https://github.com/jscutlery/nx-completion.git ~/.oh-my-zsh/custom/plugins/nx-completion
 
-RUN curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose && \
-    chmod +x /usr/local/bin/docker-compose
-
+# docker-compose v1 and v2
+RUN pip install docker-compose && asdf reshim
 RUN mkdir -p /usr/local/lib/docker/cli-plugins && \
     curl -SL https://github.com/docker/compose/releases/download/v2.2.3/docker-compose-linux-x86_64 -o /usr/local/lib/docker/cli-plugins/docker-compose && \
     chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+
+# use asdf to install additional utilities (awscli, aws-sam-cli)
+RUN asdf plugin add awscli && \
+    asdf install awscli latest:2 && \
+    asdf global awscli latest:2
+
+RUN asdf plugin add aws-sam-cli && \
+    asdf install aws-sam-cli latest && \
+    asdf global aws-sam-cli latest
     
 COPY resources/aws-assume /usr/local/bin/aws-assume
 
