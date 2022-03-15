@@ -140,10 +140,18 @@ RUN apt-get update && apt-get install -y build-essential && \
 RUN pip install aws-sam-cli
 
 RUN git clone https://github.com/jscutlery/nx-completion.git ~/.oh-my-zsh/custom/plugins/nx-completion
+
+RUN curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose && \
+    chmod +x /usr/local/bin/docker-compose
+
+RUN mkdir -p /usr/local/lib/docker/cli-plugins && \
+    curl -SL https://github.com/docker/compose/releases/download/v2.2.3/docker-compose-linux-x86_64 -o /usr/local/lib/docker/cli-plugins/docker-compose && \
+    chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
     
 COPY resources/aws-assume /usr/local/bin/aws-assume
 
 RUN cd /bin && ln -sf zsh sh && chsh -s /bin/zsh
 ENV SHELL=zsh
+ENV PATH=$PATH:/root/.bin
 WORKDIR /root
 ENTRYPOINT [ "/bin/zsh", "-lc" ]
