@@ -148,7 +148,7 @@ RUN mkdir -p /usr/local/lib/docker/cli-plugins && \
 # use asdf to install additional utilities (awscli, aws-sam-cli)
 RUN asdf plugin add awscli && \
     asdf install awscli latest:2 && \
-    asdf global awscli latest:2
+    asdf global awscli latest
 
 RUN asdf plugin add aws-sam-cli && \
     asdf install aws-sam-cli latest && \
