@@ -155,8 +155,8 @@ RUN asdf plugin add aws-sam-cli && \
     asdf install aws-sam-cli 1.40.1 && \
     asdf global aws-sam-cli 1.40.1
 
+COPY resources/docker-daemon.json /etc/docker/daemon.json
 COPY resources/aws-assume /usr/local/bin/aws-assume
-COPY resources/dockerd-entrypoint.sh /dockerd-entrypoint.sh
 
 RUN cd /bin && ln -sf zsh sh && chsh -s /bin/zsh
 ENV SHELL=zsh
